@@ -22,7 +22,7 @@ date. We recommend you to use the latest version available.
 If you use this dataset, please cite:
 
 ```bibtex
-@techreport{pes2o,
+@techreport{peS2o,
     author = {Luca Soldaini and Kyle Lo},
     year = 2023,
     title = {{peS2o (Pretraining Efficiently on S2ORC) Dataset}},
