@@ -1,13 +1,20 @@
 <p align="center" style="margin-top: -2em">
-<img src="https://huggingface.co/datasets/allenai/pes2o/resolve/main/logo.png" alt="peS2o logo. It's a picure of a mortar and pestle with documents flying in." width=384px height=auto>  
+<img src="res/logo.png" alt="peS2o logo. It's a picure of a mortar and pestle with documents flying in." width=384px height=auto>
 </p>
 <p align="center" style="font-size: 1.2em; margin-top: -1em"><i>Pretraining Efficiently on <a href="https://github.com/allenai/s2orc">S2ORC</a>!</i></p>
-<p align="center" style="font-size: 1.2em;">Available on the <a href="https://github.com/allenai/s2orc">Huggingface Hub</a></p>
+
 
 The peS2o dataset is a collection of ~40M creative commmon licensed academic papers,
 cleaned, filtered, and formatted for pre-training of language models. It is derived from
 the [Semantic Scholar Open Research Corpus][2]([Lo et al, 2020][1]), or S2ORC.
 
+<p align="center" style="font-size: 1.2em;">peS2o is available on the <span><img src="res/hf-logo.png" width=auto height=30px style="margin: -8px auto;"></span> <a href="https://huggingface.co/datasets/allenai/pes2o">Huggingface Hub</a>!</p>
+
+
+```python
+from datasets import load_dataset
+dataset = load_dataset("allenai/peS2o", "v2", split="train")
+```
 
 We release multiple version of peS2o, each with different processing and knowledge cutoff
 date. We recommend you to use the latest version available.
@@ -20,7 +27,7 @@ If you use this dataset, please cite:
     year = 2023,
     title = {{peS2o (Pretraining Efficiently on S2ORC) Dataset}},
     institution = {{Allen Institute for AI}},
-    note = {\url{https://huggingface.co/datasets/allenai/pes2o}}
+    note = {ODC-By, \url{https://github.com/allenai/pes2o}}
 }
 ```
 

@@ -1,0 +1,25 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: peS2o
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - family-names: Soldaini
+    given-names: Luca
+    email: lucas@allenai.org
+    affiliation: Allen Institute for AI
+    orcid: 'https://orcid.org/0000-0001-6998-9863'
+  - given-names: Kyle
+    family-names: Lo
+    email: kylel@allenai.org
+    affiliation: Allen Institute for AI
+    orcid: 'https://orcid.org/0000-0002-1804-2853'
+repository-code: 'https://github.com/allenai/peS2o'
+url: 'https://huggingface.co/datasets/allenai/pes2o'
+abstract: >
+  The peS2o dataset is a collection of ~40M creative commmon licensed academic papers, cleaned, filtered, and formatted for pre-training of language models. It is derived from S2ORC.
+license: Apache-2.0
