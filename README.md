@@ -1,10 +1,10 @@
 <p align="center" style="margin-top: -2em">
 <img src="res/logo.png" alt="peS2o logo. It's a picure of a mortar and pestle with documents flying in." width=384px height=auto>
 </p>
-<p align="center" style="font-size: 1.2em; margin-top: -1em"><i>Pretraining Efficiently on <a href="https://github.com/allenai/s2orc">S2ORC</a>!</i></p>
+<p align="center" style="font-size: 1.2em; margin-top: -1em"><i>Pretraining Effectively on <a href="https://github.com/allenai/s2orc">S2ORC</a>!</i></p>
 
 
-The peS2o dataset is a collection of ~40M creative commmon licensed academic papers,
+The peS2o dataset is a collection of ~40M open access academic papers,
 cleaned, filtered, and formatted for pre-training of language models. It is derived from
 the [Semantic Scholar Open Research Corpus][2]([Lo et al, 2020][1]), or S2ORC.
 
