@@ -52,11 +52,11 @@ Each document in the dataset is a dictionary with the following fields:
 
 - *Knowledge cutoff*: 2023-01-03
 - *Number of documents*: 67.56M
-- *Number of whitespace-separated tokens*: 47.37M
+- *Number of whitespace-separated tokens*: 47.37B
 
 ### Processing
 
-Processing differs slightly wether it was derived from the full-text corpus (`s2orc`) or the title and abstract corpus (`s2ag`).
+Processing differs slightly whether it was derived from the full-text corpus (`s2orc`) or the title and abstract corpus (`s2ag`).
 
 #### S2ORC-derived documents
 
