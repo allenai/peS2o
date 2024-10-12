@@ -19,10 +19,16 @@ from tempfile import NamedTemporaryFile
 from threading import Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import urlparse
+import random
+import time
 
+import smart_open
 import cld3
 import numpy as np
 import pandas as pd
+import fsspec
+import pyarrow.parquet as pq
 import springs as sp
 from blingfire import text_to_words
 from cached_path import cached_path
@@ -127,103 +133,146 @@ def fix_missing_created(row: pd.Series) -> pd.Series:
     return row
 
 
+def get_language(text: str) -> str:
+    try:
+        return cld3.get_language(text.strip()[:LANG_ID_CUT]).language  # type: ignore
+    except Exception:
+        return "unk"
+
 def process_single(
     io_paths: Tuple[io_utils.MultiPath, io_utils.MultiPath],
     pbar_queue: Optional[Queue] = None,
     debug: int = 0,
 ):
+    time.sleep(random.random())
+
     logger = sp.configure_logging(__name__, logging_level="WARNING", force_root_reattach=True)
 
     upp = UnigramPerplexityPredictor()
     src, dst = io_paths
     dst.path += ".gz"
 
-    with io_utils.open_file_for_read(src, "rb", logger=logger) as f, NamedTemporaryFile("wb") as tmp:
-        tmp.write(f.read())
-        tmp.flush()
-        df = pd.read_parquet(tmp.name)
+    # with io_utils.open_file_for_read(src, "rb", logger=logger) as f, NamedTemporaryFile("wb") as tmp:
+    #     tmp.write(f.read())
+    #     tmp.flush()
+    #     df = pd.read_parquet(tmp.name)
 
-    # for debugging purposes, only take first 1000 rows
-    if debug > 0:
-        df = df.head(debug)
+    fs = fsspec.filesystem(src.prot)
+    pf = pq.read_table(str(src), filesystem=fs)
+    # df = pf.to_pandas()
+    # df = df.drop_duplicates(subset='id')
 
-    def get_language(text: str) -> str:
-        try:
-            return cld3.get_language(text.strip()[:LANG_ID_CUT]).language  # type: ignore
-        except Exception:
-            return "unk"
+    with smart_open.open(str(dst), "wt") as f:
+        for batch in pf.to_batches(max_chunksize=10_000):
+            # print("using batch with size", len(batch))
+            df = batch.to_pandas().drop_duplicates(subset='id')
 
-    # assign version v3 and s2ag as the source
-    df["version"] = "v3"
-    df["source"] = "pes2o/s2ag"
+            # print("done unique")
+            # for row in zip(*[batch_dict[c] for c in pf.column_names]):
+            #     row = dict(zip(pf.column_names, values))
 
-    # fix missing added column
-    df = df.apply(fix_missing_added, axis=1)
+            #     if row["id"] in seen_ids:
+            #         continue
+            #     seen_ids.add(row["id"])
 
-    # fix missing created column
-    df = df.apply(fix_missing_created, axis=1)
+            #     import ipdb; ipdb.set_trace()
 
-    # spec requires id to be a string
-    df["id"] = df["id"].astype(str)
+                # Do something with the row of c1, c2, c3
 
-    # normalize the text columns
-    def norm_fn(txt: str) -> str:
-        return unicodedata.normalize("NFC", txt) if isinstance(txt, str) else txt
+        # df = pd.read_parquet(src)
 
-    df["title"] = df["title"].apply(norm_fn)
-    df["abstract"] = df["abstract"].apply(norm_fn)
+            # # for debugging purposes, only take first 1000 rows
+            # if debug > 0:
+            # #     df = df.head(debug)
+            # with smart_open.open(str(dst), "wt") as f:
+            #     for index, row in df.iterrows():
+            # assign version v3 and s2ag as the source
+            df["version"] = "v3"
+            df["source"] = "pes2o/s2ag"
 
-    # create initial text by concatenating title and abstract
-    df["text"] = df["title"] + "\n\n" + df["abstract"]
+            # fix missing added column
+            df = df.apply(fix_missing_added, axis=1)
 
-    # create new column that is the result of the function
-    # cld3.get_language(text) applied to the text column
-    df["title_language"] = df["title"].apply(get_language)
-    df["abstract_language"] = df["abstract"].apply(get_language)
+            # fix missing created column
+            df = df.apply(fix_missing_created, axis=1)
 
-    # calculate the perplexity of abstract
-    df["title_perplexity"] = df["title"].apply(upp.predict)
-    df["abstract_perplexity"] = df["abstract"].apply(upp.predict)
+            # spec requires id to be a string
+            df["id"] = df["id"].astype(str)
 
-    # get the number of tokens as a new column
-    df["title_count"] = df["title"].apply(lambda x: len(x.split()))
-    df["abstract_count"] = df["abstract"].apply(lambda x: len(x.split()))
+            # normalize the text columns
+            def norm_fn(txt: str) -> str:
+                return unicodedata.normalize("NFC", txt) if isinstance(txt, str) else txt
 
-    # get the most common words in the title and abstract
-    df["top_frequencies"] = (df["title"] + "\n\n" + df["abstract"]).apply(
-        lambda x: [
-            {"token": k, "count": v}
-            for k, v in
-            # count using whitespace as a delimiter
-            Counter(t for t in x.split()).most_common(COMMON_CUT)
-        ]
-    )
+            df["title"] = df["title"].apply(norm_fn)
+            df["abstract"] = df["abstract"].apply(norm_fn)
 
-    # define a lambda function to cast to int or return -1
-    # if the value is not a float or int
-    df["year"] = df["year"].apply(lambda x: int(x) if isinstance(x, (float, int)) and not pd.isna(x) else -1)
+            # create initial text by concatenating title and abstract
+            df["text"] = df["title"] + "\n\n" + df["abstract"]
 
-    # listify the sources
-    df["sources"] = df["sources"].apply(lambda x: [] if x is None else x.tolist())
+            # print("done normalizing")
 
-    # put everything that is not part of the data spec in metadata
-    df["metadata"] = df.apply(row_to_metadata, axis=1)
-    cnt = sum(df["title_count"] + df["abstract_count"])
-    df = df.drop([c for c in df.columns if c not in DATA_COLUMNS], axis=1)
+            # create new column that is the result of the function
+            # cld3.get_language(text) applied to the text column
+            df["title_language"] = df["title"].apply(get_language)
+            df["abstract_language"] = df["abstract"].apply(get_language)
 
-    with ExitStack() as stack:
-        out_f = stack.enter_context(io_utils.open_file_for_write(dst, "wb"))
-        out_stream = stack.enter_context(gzip.open(out_f, "wt"))
-        for row in df.itertuples(index=False):
-            row_dict = row._asdict()
-            content = json.dumps(row_dict, default=str).strip()
-            out_stream.write(content + "\n")  # type: ignore
+            # print("done language")
+
+            # calculate the perplexity of abstract
+            df["title_perplexity"] = df["title"].apply(upp.predict)
+            df["abstract_perplexity"] = df["abstract"].apply(upp.predict)
+
+            # print("done perplexity")
+
+            # get the number of tokens as a new column
+            df["title_count"] = df["title"].apply(lambda x: len(x.split()))
+            df["abstract_count"] = df["abstract"].apply(lambda x: len(x.split()))
+
+            # print("done count")
+
+            # get the most common words in the title and abstract
+            df["top_frequencies"] = (df["title"] + "\n\n" + df["abstract"]).apply(
+                lambda x: [
+                    {"token": k, "count": v}
+                    for k, v in
+                    # count using whitespace as a delimiter
+                    Counter(t for t in x.split()).most_common(COMMON_CUT)
+                ]
+            )
+
+            # print("done top frequencies")
+
+            # define a lambda function to cast to int or return -1
+            # if the value is not a float or int
+            df["year"] = df["year"].apply(lambda x: int(x) if isinstance(x, (float, int)) and not pd.isna(x) else -1)
+
+            # listify the sources
+            df["sources"] = df["sources"].apply(lambda x: [] if x is None else x.tolist())
+
+            # put everything that is not part of the data spec in metadata
+            df["metadata"] = df.apply(row_to_metadata, axis=1)
+            cnt = sum(df["title_count"] + df["abstract_count"])
+            df = df.drop([c for c in df.columns if c not in DATA_COLUMNS], axis=1)
+
+            # print("done metadata")
+
+            # with ExitStack() as stack:
+            #     out_f = stack.enter_context(io_utils.open_file_for_write(dst, "wb"))
+            #     out_stream = stack.enter_context(gzip.open(out_f, "wt"))
+
+            for row in df.itertuples(index=False):
+                content = json.dumps(row._asdict(), default=str).strip()
+                f.write(content + "\n")
+                # out_stream.write(content + "\n")  # type: ignore
+
+            if pbar_queue is not None:
+                pbar_queue.put((0, int(len(df)), int(cnt)))
 
     if pbar_queue is not None:
-        pbar_queue.put((1, int(len(df)), int(cnt)))
+        pbar_queue.put((1, 0, 0))
 
-    del df
-    del upp
+    # del df
+    # del upp
     gc.collect()
 
 

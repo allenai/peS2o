@@ -6,7 +6,16 @@ UNLOAD (
             p.title,
             p.year,
             ARRAY_DISTINCT(TRANSFORM(all_sources, x -> x.source)) AS sources,
-            externalIds AS externalIds,
+            ARRAY_DISTINCT(
+                TRANSFORM(
+                    ARRAY_SORT(
+                        MAP_ENTRIES(
+                            MAP_FILTER(externalIds, (k, v) -> v IS NOT NULL)
+                        )
+                    ),
+                    x -> MAP(array['source', 'id'], array[x[1], x[2]])
+                )
+            ) as external_ids,
             p.added as added,
             p.paperId as sha1
         FROM (
@@ -111,19 +120,19 @@ UNLOAD (
         s2ag.corpusId as id,
         title,
         abstract,
-        year,
-        sha1,
-        added,
-        created,
-        sources,
-        s2ag.externalIds,
-        -- make 50 partitions for smaller output files
+        ARBITRARY(year) as year,
+        ARBITRARY(sha1) as sha1,
+        ARBITRARY(added) as added,
+        ARBITRARY(created) as created,
+        ARBITRARY(sources) as sources,
+        ARBITRARY(s2ag.external_ids) as external_ids,
         s2ag.corpusId % 50 AS part_id
     FROM s2ag_abstracts_with_dates as s2ag
     -- exclude s2orc ids from dump
     LEFT OUTER JOIN s2orc_ids
         ON s2ag.corpusId = s2orc_ids.id
     WHERE s2orc_ids.id IS NULL
+    GROUP BY s2ag.corpusId, title, abstract
 )
 TO 's3://ai2-llm/pretraining-data/sources/s2/raw/2024_10_06/s2ag/'
 WITH (

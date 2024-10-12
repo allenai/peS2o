@@ -8,3 +8,4 @@ cached_path
 pyarrow
 orjson
 blingfire
+pyarrow
