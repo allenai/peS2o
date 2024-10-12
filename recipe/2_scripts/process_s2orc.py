@@ -19,7 +19,7 @@ from threading import Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import cld3
+import gcld3
 import numpy as np
 import pandas as pd
 import springs as sp
@@ -226,13 +226,13 @@ def process_single(
         for para in filtered_paragraphs:
             try:
                 text = para.strip()[:LANG_ID_CUT]
-                langs.append(cld3.get_language(text).language)  # type: ignore
+                langs.append(gcld3.get_language(text).language)  # type: ignore
             except Exception:
                 langs.append("unk")
         return langs
 
     # create new column that is the result of the function
-    # cld3.get_language(text) applied to the text column
+    # gcld3.get_language(text) applied to the text column
     df["language_paragraphs"] = df["filtered_paragraphs"].apply(get_language)
 
     # calculate the perplexity of each paragraph

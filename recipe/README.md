@@ -21,5 +21,5 @@ SELECT partition_0, COUNT(*) FROM "espresso"."pq_paper" GROUP by "partition_0";
 First, install the dependencies:
 
 ```bash
-pip install -r 2.scripts/requirements.txt
+pip install -r 2_scripts/requirements.txt
 ```

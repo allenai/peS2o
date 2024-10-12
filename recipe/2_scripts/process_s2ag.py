@@ -20,7 +20,7 @@ from threading import Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import cld3
+import gcld3
 import numpy as np
 import pandas as pd
 import springs as sp
@@ -149,7 +149,7 @@ def process_single(
 
     def get_language(text: str) -> str:
         try:
-            return cld3.get_language(text.strip()).language  # type: ignore
+            return gcld3.get_language(text.strip()).language  # type: ignore
         except Exception:
             return "unk"
 
@@ -177,7 +177,7 @@ def process_single(
     df["text"] = df["title"] + "\n\n" + df["abstract"]
 
     # create new column that is the result of the function
-    # cld3.get_language(text) applied to the text column
+    # gcld3.get_language(text) applied to the text column
     df["title_language"] = df["title"].apply(get_language)
     df["abstract_language"] = df["abstract"].apply(get_language)
 
