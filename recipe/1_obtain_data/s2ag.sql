@@ -117,7 +117,8 @@ UNLOAD (
         created,
         sources,
         s2ag.externalIds,
-        s2ag.corpusId % 5 AS part_id
+        -- make 50 partitions for smaller output files
+        s2ag.corpusId % 50 AS part_id
     FROM s2ag_abstracts_with_dates as s2ag
     -- exclude s2orc ids from dump
     LEFT OUTER JOIN s2orc_ids

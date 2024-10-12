@@ -206,8 +206,8 @@ def process_single(
     df.drop(columns=["all_paragraphs"], inplace=True)
 
     # assign version v0 and s2 as the source
-    df["version"] = "v0"
-    df["source"] = "s2"
+    df["version"] = version
+    df["source"] = source
 
     # fix missing added column
     df = df.apply(fix_missing_added, axis=1)
