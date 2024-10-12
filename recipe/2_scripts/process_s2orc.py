@@ -324,7 +324,6 @@ def main(cfg: ProcessTextConfig):
 
     fn = partial(
         process_single,
-        debug=cfg.debug,
         version=cfg.version,
         source=cfg.source
     )

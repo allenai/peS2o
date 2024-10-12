@@ -40,7 +40,7 @@ GOOGLE_1T_CORPUS = (
 class ProcessTextConfig:
     src: str = sp.field(default=sp.MISSING, help="Path to S3 prefix containing parqet files")
     dst: str = sp.field(default=sp.MISSING, help="Path to S3 prefix to write parqet files")
-    debug: int = sp.field(default=0, help="Debug mode. Set to >0 to enable")
+    debug: bool = sp.field(default=False, help="Debug mode")
     parallel: int = sp.field(default=cpu_count(), help="Number of processes to use")
     version: str = sp.field(default="v0", help="Version of the data")
     source: str = sp.field(default="s2", help="Source of the data")
@@ -132,7 +132,6 @@ def fix_missing_created(row: pd.Series) -> pd.Series:
 def process_single(
     io_paths: Tuple[io_utils.MultiPath, io_utils.MultiPath],
     pbar_queue: Optional[Queue] = None,
-    debug: int = 0,
     version: str = "v0",
     source: str = "s2",
 ):
@@ -254,12 +253,11 @@ def main(cfg: ProcessTextConfig):
 
     fn = partial(
         process_single,
-        debug=cfg.debug,
         version=cfg.version,
         source=cfg.source
     )
 
-    if cfg.debug > 0:
+    if cfg.debug:
         src_paths = src_paths[: cfg.debug]
         with tqdm(total=len(src_paths)) as pbar:
             for single_src, single_dst in zip(src_paths, dst_paths):
