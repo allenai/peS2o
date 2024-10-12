@@ -293,7 +293,7 @@ def process_single(
             out_stream.write(content + "\n")  # type: ignore
 
     if pbar_queue is not None:
-        pbar_queue.put((1, int(len(df)), int(cnt)))
+        pbar_queue.put_nowait((1, int(len(df)), int(cnt)))
 
 
 def threaded_progressbar(q: Queue, timeout: float, total_files: Optional[int] = None):
@@ -357,7 +357,7 @@ def main(cfg: ProcessTextConfig):
             pool.close()
             pool.join()
 
-            pbar_queue.put(None)
+            pbar_queue.put_nowait(None)
             pbar_thread.join()
             manager.shutdown()
 
