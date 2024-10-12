@@ -12,11 +12,11 @@ UNLOAD (
                         -- remove all double quotes
                         replace(metadata.external_ids, '"', ''),
                         -- parse values and put them in the right structure
-                        '{\s*''source''\s*:\s*''(.*?)''\s*,\s*''id''\s*:\s*''(.*?)''}\s*',
+                        '{\s*''source''\s*:\s*''(.*?)''\s*,\s*''id''\s*:\s*''?(.*?)''?}\s*',
                         '{"source":"$1","id":"$2"}'
                     ),
                     -- if there are multiple entries, put them in the right structure
-                    '}\s*{',
+                    '"}(.|\s)*?{"',
                     '},{'
                 )
             ) as metadata_external_ids,
