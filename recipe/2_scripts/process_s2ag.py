@@ -153,7 +153,8 @@ def process_single(
 
     def get_language(text: str) -> str:
         try:
-            return pycld2.detect(text)[0][0]
+            _, _, ((_, lang, _, _), *_) = pycld2.detect(text)
+            return lang if (lang := lang.lower()) != "un" else "unk"
         except Exception:
             return "unk"
 

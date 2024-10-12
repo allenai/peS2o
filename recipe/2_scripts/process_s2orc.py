@@ -225,19 +225,26 @@ def process_single(
     # all paragraphs
     df["text"] = df.apply(merge_text, axis=1)
 
-    def get_language(filtered_paragraphs: List[str]) -> List[str]:
+    def get_language(text: str) -> str:
+        try:
+            _, _, ((_, lang, _, _), *_) = pycld2.detect(text)
+            return lang if (lang := lang.lower()) != "un" else "unk"
+        except Exception:
+            return "unk"
+
+    def get_language_paragraphs(filtered_paragraphs: List[str]) -> List[str]:
         langs: List[str] = []
         for para in filtered_paragraphs:
             try:
                 text = para.strip()[:LANG_ID_CUT]
-                langs.append(pycld2.detect(text)[0][0])
+                langs.append(get_language(text))
             except Exception:
                 langs.append("unk")
         return langs
 
     # create new column that is the result of the function
     # gcld3.get_language(text) applied to the text column
-    df["language_paragraphs"] = df["filtered_paragraphs"].apply(get_language)
+    df["language_paragraphs"] = df["filtered_paragraphs"].apply(get_language_paragraphs)
 
     # calculate the perplexity of each paragraph
     df["perplexity_paragraphs"] = df["filtered_paragraphs"].apply(lambda x: [upp.predict(para) for para in x])
