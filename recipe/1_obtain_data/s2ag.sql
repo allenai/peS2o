@@ -13,7 +13,7 @@ UNLOAD (
                             MAP_FILTER(externalIds, (k, v) -> v IS NOT NULL)
                         )
                     ),
-                    x -> MAP(array['source', 'id'], array[x[1], x[2]])
+                    x -> CAST(x AS ROW(source VARCHAR, id VARCHAR))
                 )
             ) as external_ids,
             p.added as added,

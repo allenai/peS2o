@@ -137,7 +137,7 @@ UNLOAD (
         ARBITRARY(added) AS added,
         ARBITRARY(created) AS created,
         ARBITRARY(metadata) AS metadata,
-        ARBITRARY(split) AS split,
+        ARBITRARY(split) AS split
         -- CAST(id AS INT) % 10 AS part_id
         FROM (
             SELECT
@@ -171,7 +171,6 @@ UNLOAD (
                         extFieldsOfStudy ARRAY<VARCHAR>
                     )
                 ) AS metadata,
-                split
             FROM filtered_corpus_with_fos
         )
         GROUP BY id

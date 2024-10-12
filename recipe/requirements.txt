@@ -9,3 +9,4 @@ pyarrow
 orjson
 blingfire
 pyarrow
+tokenizers

@@ -14,7 +14,12 @@ CREATE EXTERNAL TABLE IF NOT EXISTS `temp_lucas`.`llm_s2orc_v0-fos-license-2024-
         fields_of_study:ARRAY<STRING>,
         paragraphs:ARRAY<STRUCT<language:STRING,perplexity:DOUBLE,text:STRING>>,
         count:INT,
-        top_frequencies:ARRAY<STRUCT<token:STRING,count:INT>>
+        top_frequencies:ARRAY<STRUCT<token:STRING,count:INT>>,
+        oa_license: STRING,
+        oa_url: STRING,
+        oa_status: STRING,
+        pdf_src: STRING,
+        pdf_hash: STRING
     >
 )
 ROW FORMAT serde 'org.apache.hive.hcatalog.data.JsonSerDe'

@@ -21,6 +21,7 @@ from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 import random
+from pathlib import Path
 import time
 
 import smart_open
@@ -151,6 +152,9 @@ def process_single(
     upp = UnigramPerplexityPredictor()
     src, dst = io_paths
     dst.path += ".gz"
+
+    if dst.prot == "":
+        Path(str(dst)).parent.mkdir(parents=True, exist_ok=True)
 
     # with io_utils.open_file_for_read(src, "rb", logger=logger) as f, NamedTemporaryFile("wb") as tmp:
     #     tmp.write(f.read())

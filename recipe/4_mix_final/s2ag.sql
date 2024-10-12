@@ -6,6 +6,13 @@ UNLOAD (
             added,
             created,
             metadata,
+            json_parse(
+                regexp_replace(
+                    replace(metadata.external_ids, '''', '"'),
+                    '}\s*{',
+                    '},{'
+                )
+            ) as metadata_external_ids,
             cast(id AS INT) as corpusid,
             (metadata.title || CHR(10) || CHR(10) || metadata.abstract) AS text,
             IF(
@@ -90,15 +97,9 @@ UNLOAD (
                     cr.metadata.abstract,
                     cr.metadata.sha1,
                     cr.metadata.sources,
-                    cr.metadata.title_language,
-                    cr.metadata.abstract_language,
-                    cr.metadata.title_perplexity,
-                    cr.metadata.abstract_perplexity,
-                    cr.metadata.title_count,
-                    cr.metadata.abstract_count,
-                    cr.metadata.top_frequencies,
                     pq.s2FieldsOfStudy,
-                    pq.fieldsOfStudy
+                    pq.fieldsOfStudy,
+                    cr.metadata_external_ids
                 )
                 AS
                 ROW(
@@ -107,15 +108,9 @@ UNLOAD (
                     abstract VARCHAR,
                     sha1 VARCHAR,
                     sources ARRAY<VARCHAR>,
-                    title_language VARCHAR,
-                    abstract_language VARCHAR,
-                    title_perplexity DOUBLE,
-                    abstract_perplexity DOUBLE,
-                    title_count BIGINT,
-                    abstract_count BIGINT,
-                    top_frequencies ARRAY<ROW(token VARCHAR, count BIGINT)>,
                     s2FieldsOfStudy ARRAY<VARCHAR>,
-                    extFieldsOfStudy ARRAY<VARCHAR>
+                    extFieldsOfStudy ARRAY<VARCHAR>,
+                    external_ids ARRAY<ROW(source VARCHAR, id VARCHAR)>
                 )
             ) AS metadata
         FROM filtered_corpus as cr
@@ -130,8 +125,7 @@ UNLOAD (
         ARBITRARY(created) AS created,
         ARBITRARY(text) AS text,
         ARBITRARY(metadata) AS metadata,
-        ARBITRARY(split) AS split,
-        -- CAST(id AS INT) % 5 AS part_id
+        ARBITRARY(split) AS split
     FROM filtered_corpus_with_fos
     GROUP BY id
 )
