@@ -187,7 +187,7 @@ def process_single(
             # with smart_open.open(str(dst), "wt") as f:
             #     for index, row in df.iterrows():
             # assign version v3 and s2ag as the source
-            df["version"] = "v3"
+            df["version"] = "v0-fos-license"
             df["source"] = "pes2o/s2ag"
 
             # fix missing added column

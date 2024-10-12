@@ -153,6 +153,9 @@ def process_single(
     if debug:
         df = df.head(100)
 
+    # drop duplicates
+    df = df.drop_duplicates(subset="id")
+
     # filter all rows that don't have a "all_paragraphs" column
     df = df[df["all_paragraphs"].notna()]
 
@@ -202,7 +205,7 @@ def process_single(
     df.drop(columns=["all_paragraphs"], inplace=True)
 
     # assign version v0 and s2 as the source
-    df["version"] = "v3"
+    df["version"] = "v0-fos-license"
     df["source"] = "pes2o/s2orc"
 
     # fix missing added column
