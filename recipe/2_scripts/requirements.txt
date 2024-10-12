@@ -3,7 +3,7 @@ smashed[remote]>=0.19.4
 springs
 s3fs
 fsspec
-gcld3
+pycld2
 cached_path
 pyarrow
 orjson

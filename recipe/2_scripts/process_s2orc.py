@@ -19,7 +19,7 @@ from threading import Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import gcld3
+import pycld2
 import numpy as np
 import pandas as pd
 import springs as sp
@@ -41,6 +41,8 @@ class ProcessTextConfig:
     dst: str = sp.field(default=sp.MISSING, help="Path to S3 prefix to write parqet files")
     debug: bool = sp.field(default=False, help="Debug mode")
     parallel: int = sp.field(default=cpu_count(), help="Number of processes to use")
+    version: str = sp.field(default="v0", help="Version of the data")
+    source: str = sp.field(default="s2", help="Source of the data")
 
 
 class UnigramPerplexityPredictor:
@@ -137,6 +139,8 @@ def process_single(
     io_paths: Tuple[io_utils.MultiPath, io_utils.MultiPath],
     pbar_queue: Optional[Queue] = None,
     debug: bool = False,
+    version: str = "v0",
+    source: str = "s2",
 ):
     logger = sp.configure_logging(__name__, logging_level="WARNING", force_root_reattach=True)
 
@@ -226,7 +230,7 @@ def process_single(
         for para in filtered_paragraphs:
             try:
                 text = para.strip()[:LANG_ID_CUT]
-                langs.append(gcld3.get_language(text).language)  # type: ignore
+                langs.append(pycld2.detect(text)[0][0])
             except Exception:
                 langs.append("unk")
         return langs
@@ -313,7 +317,12 @@ def main(cfg: ProcessTextConfig):
     if cfg.debug:
         with tqdm(total=len(src_paths)) as pbar:
             for single_src, single_dst in zip(src_paths, dst_paths):
-                process_single((single_src, single_dst), debug=cfg.debug)
+                process_single(
+                    (single_src, single_dst),
+                    debug=cfg.debug,
+                    version=cfg.version,
+                    source=cfg.source
+                )
                 pbar.update(1)
 
     else:

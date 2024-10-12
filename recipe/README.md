@@ -23,3 +23,17 @@ First, install the dependencies:
 ```bash
 pip install -r 2_scripts/requirements.txt
 ```
+
+Then, run:
+
+```shell
+python 2_scripts/process_s2ag.py \
+  src=s3://ai2-llm/pretraining-data/sources/s2/raw/2024_10_06/s2ag/ \
+  dst=s3://ai2-llm/pretraining-data/sources/s2/v3-fos-license/documents/2024-10-06/dataset=s2ag \
+  parallel=188
+
+python 2_scripts/process_s2orc.py \
+  src=s3://ai2-llm/pretraining-data/sources/s2/raw/2024_10_06/s2orc/ \
+  dst=s3://ai2-llm/pretraining-data/sources/s2/v3-fos-license/documents/2024-10-06/dataset=s2orc \
+  parallel=188
+```

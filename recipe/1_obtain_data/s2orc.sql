@@ -86,7 +86,12 @@ UNLOAD (
             full_text,
             ARRAY_SORT(
                 ARRAY_DISTINCT(paragraph_loc || section_header_loc)
-            ) AS all_paralocs
+            ) AS all_paralocs,
+            oa_license,
+            oa_url,
+            oa_status,
+            pdf_src,
+            pdf_hash
         FROM s2orc_open_access
     ),
     extracted_paragraphs AS (
@@ -103,7 +108,12 @@ UNLOAD (
                         x.type
                     ) AS ROW(text VARCHAR, type VARCHAR)
                 )
-            ) AS all_paragraphs
+            ) AS all_paragraphs,
+            oa_license,
+            oa_url,
+            oa_status,
+            pdf_src,
+            pdf_hash
         FROM prepared_locs
     )
     SELECT
@@ -112,8 +122,8 @@ UNLOAD (
         ep.sha1,
         ep.added,
         ep.created,
-        -- make 100 partitions for smaller output files
-        pt.id % 100 as part_id
+        -- make 10 partitions for smaller output files
+        pt.id % 10 as part_id
     FROM extracted_paragraphs AS pt
     INNER JOIN content_espresso_metadata AS ep
         ON pt.id = ep.id

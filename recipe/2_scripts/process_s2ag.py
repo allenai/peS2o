@@ -20,7 +20,7 @@ from threading import Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import gcld3
+import pycld2
 import numpy as np
 import pandas as pd
 import springs as sp
@@ -42,6 +42,8 @@ class ProcessTextConfig:
     dst: str = sp.field(default=sp.MISSING, help="Path to S3 prefix to write parqet files")
     debug: int = sp.field(default=0, help="Debug mode. Set to >0 to enable")
     parallel: int = sp.field(default=cpu_count(), help="Number of processes to use")
+    version: str = sp.field(default="v0", help="Version of the data")
+    source: str = sp.field(default="s2", help="Source of the data")
 
 
 class UnigramPerplexityPredictor:
@@ -131,6 +133,8 @@ def process_single(
     io_paths: Tuple[io_utils.MultiPath, io_utils.MultiPath],
     pbar_queue: Optional[Queue] = None,
     debug: int = 0,
+    version: str = "v0",
+    source: str = "s2",
 ):
     logger = sp.configure_logging(__name__, logging_level="WARNING", force_root_reattach=True)
 
@@ -149,13 +153,13 @@ def process_single(
 
     def get_language(text: str) -> str:
         try:
-            return gcld3.get_language(text.strip()).language  # type: ignore
+            return pycld2.detect(text)[0][0]
         except Exception:
             return "unk"
 
-    # assign version v0 and s2 as the source
-    df["version"] = "v0"
-    df["source"] = "s2"
+    # assign version v3 and s2 as the source
+    df["version"] = version
+    df["source"] = source
 
     # fix missing added column
     df = df.apply(fix_missing_added, axis=1)
@@ -271,7 +275,14 @@ def main(cfg: ProcessTextConfig):
             pbar_thread.start()
 
             for _ in pool.imap_unordered(
-                partial(process_single, pbar_queue=pbar_queue, debug=cfg.debug), tuple(zip(src_paths, dst_paths))
+                partial(
+                    process_single,
+                    pbar_queue=pbar_queue,
+                    debug=cfg.debug,
+                    version=cfg.version,
+                    source=cfg.source
+                ),
+                tuple(zip(src_paths, dst_paths))
             ):
                 ...
 
