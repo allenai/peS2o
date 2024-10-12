@@ -3,6 +3,7 @@ smashed[remote]>=0.19.4
 springs
 s3fs
 fsspec
+uniseg
 pycld3
 cached_path
 pyarrow
@@ -10,3 +11,5 @@ orjson
 blingfire
 pyarrow
 tokenizers
+smart_open
+zstandard

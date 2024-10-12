@@ -8,7 +8,14 @@ UNLOAD (
             metadata,
             json_parse(
                 regexp_replace(
-                    replace(metadata.external_ids, '''', '"'),
+                    regexp_replace(
+                        -- remove all double quotes
+                        replace(metadata.external_ids, '"', ''),
+                        -- parse values and put them in the right structure
+                        '{\s*''source''\s*:\s*''(.*?)''\s*,\s*''id''\s*:\s*''(.*?)''}\s*',
+                        '{"source":"$1","id":"$2"}'
+                    ),
+                    -- if there are multiple entries, put them in the right structure
                     '}\s*{',
                     '},{'
                 )
@@ -134,5 +141,4 @@ WITH (
     format='JSON',
     compression='ZSTD',
     partitioned_by = ARRAY['split']
-    -- partitioned_by = ARRAY['split', 'part_id']
 )
