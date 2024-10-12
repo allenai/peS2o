@@ -6,7 +6,6 @@ Email:  luca@soldaini.net
 """
 
 import datetime
-import time
 import gzip
 import json
 import unicodedata
@@ -20,7 +19,7 @@ from threading import Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import pycld2
+import cld3
 import numpy as np
 import pandas as pd
 import springs as sp
@@ -42,8 +41,6 @@ class ProcessTextConfig:
     dst: str = sp.field(default=sp.MISSING, help="Path to S3 prefix to write parqet files")
     debug: bool = sp.field(default=False, help="Debug mode")
     parallel: int = sp.field(default=cpu_count(), help="Number of processes to use")
-    version: str = sp.field(default="v0", help="Version of the data")
-    source: str = sp.field(default="s2", help="Source of the data")
 
 
 class UnigramPerplexityPredictor:
@@ -139,8 +136,7 @@ def fix_missing_created(row: pd.Series) -> pd.Series:
 def process_single(
     io_paths: Tuple[io_utils.MultiPath, io_utils.MultiPath],
     pbar_queue: Optional[Queue] = None,
-    version: str = "v0",
-    source: str = "s2",
+    debug: bool = False,
 ):
     logger = sp.configure_logging(__name__, logging_level="WARNING", force_root_reattach=True)
 
@@ -152,6 +148,10 @@ def process_single(
         tmp.write(f.read())
         tmp.flush()
         df = pd.read_parquet(tmp.name)
+
+    # for debugging purposes, only take first 1000 rows
+    if debug:
+        df = df.head(100)
 
     # filter all rows that don't have a "all_paragraphs" column
     df = df[df["all_paragraphs"].notna()]
@@ -202,8 +202,8 @@ def process_single(
     df.drop(columns=["all_paragraphs"], inplace=True)
 
     # assign version v0 and s2 as the source
-    df["version"] = version
-    df["source"] = source
+    df["version"] = "v3"
+    df["source"] = "pes2o/s2orc"
 
     # fix missing added column
     df = df.apply(fix_missing_added, axis=1)
@@ -221,26 +221,19 @@ def process_single(
     # all paragraphs
     df["text"] = df.apply(merge_text, axis=1)
 
-    def get_language(text: str) -> str:
-        try:
-            _, _, ((_, lang, _, _), *_) = pycld2.detect(text)
-            return lang if (lang := lang.lower()) != "un" else "unk"
-        except Exception:
-            return "unk"
-
-    def get_language_paragraphs(filtered_paragraphs: List[str]) -> List[str]:
+    def get_language(filtered_paragraphs: List[str]) -> List[str]:
         langs: List[str] = []
         for para in filtered_paragraphs:
             try:
                 text = para.strip()[:LANG_ID_CUT]
-                langs.append(get_language(text))
+                langs.append(cld3.get_language(text).language)  # type: ignore
             except Exception:
                 langs.append("unk")
         return langs
 
     # create new column that is the result of the function
-    # gcld3.get_language(text) applied to the text column
-    df["language_paragraphs"] = df["filtered_paragraphs"].apply(get_language_paragraphs)
+    # cld3.get_language(text) applied to the text column
+    df["language_paragraphs"] = df["filtered_paragraphs"].apply(get_language)
 
     # calculate the perplexity of each paragraph
     df["perplexity_paragraphs"] = df["filtered_paragraphs"].apply(lambda x: [upp.predict(para) for para in x])
@@ -289,7 +282,7 @@ def process_single(
             out_stream.write(content + "\n")  # type: ignore
 
     if pbar_queue is not None:
-        pbar_queue.put_nowait((1, int(len(df)), int(cnt)))
+        pbar_queue.put((1, int(len(df)), int(cnt)))
 
 
 def threaded_progressbar(q: Queue, timeout: float, total_files: Optional[int] = None):
@@ -298,12 +291,7 @@ def threaded_progressbar(q: Queue, timeout: float, total_files: Optional[int] = 
         docs_pbar = stack.enter_context(tqdm(desc="  Docs", unit=" docs", position=1, unit_scale=True))
         tokens_pbar = stack.enter_context(tqdm(desc="Tokens", unit=" tokens", position=2, unit_scale=True))
         while True:
-            try:
-                item = q.get_nowait()
-            except Exception:
-                time.sleep(timeout)
-                continue
-
+            item = q.get()
             if item is None:
                 break
             else:
@@ -311,7 +299,7 @@ def threaded_progressbar(q: Queue, timeout: float, total_files: Optional[int] = 
             files_pbar.update(files)
             docs_pbar.update(docs)
             tokens_pbar.update(tokens)
-
+            sleep(timeout)
 
 
 @sp.cli(ProcessTextConfig)
@@ -322,16 +310,10 @@ def main(cfg: ProcessTextConfig):
     src_paths = [io_utils.MultiPath.parse(p) for p in io_utils.recursively_list_files(src)]
     dst_paths = [dst / (diff) if len(diff := (single_src - src)) > 0 else dst for single_src in src_paths]
 
-    fn = partial(
-        process_single,
-        version=cfg.version,
-        source=cfg.source
-    )
-
     if cfg.debug:
         with tqdm(total=len(src_paths)) as pbar:
             for single_src, single_dst in zip(src_paths, dst_paths):
-                fn((single_src, single_dst))
+                process_single((single_src, single_dst), debug=cfg.debug)
                 pbar.update(1)
 
     else:
@@ -346,13 +328,15 @@ def main(cfg: ProcessTextConfig):
             )
             pbar_thread.start()
 
-            for _ in pool.imap_unordered(fn, tuple(zip(src_paths, dst_paths))):
-                pass
+            for _ in pool.imap_unordered(
+                partial(process_single, pbar_queue=pbar_queue, debug=cfg.debug), tuple(zip(src_paths, dst_paths))
+            ):
+                ...
 
             pool.close()
             pool.join()
 
-            pbar_queue.put_nowait(None)
+            pbar_queue.put(None)
             pbar_thread.join()
             manager.shutdown()
 
