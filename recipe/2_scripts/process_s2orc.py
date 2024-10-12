@@ -302,7 +302,12 @@ def threaded_progressbar(q: Queue, timeout: float, total_files: Optional[int] = 
         docs_pbar = stack.enter_context(tqdm(desc="  Docs", unit=" docs", position=1, unit_scale=True))
         tokens_pbar = stack.enter_context(tqdm(desc="Tokens", unit=" tokens", position=2, unit_scale=True))
         while True:
-            item = q.get()
+            try:
+                item = q.get_nowait()
+            except Exception:
+                time.sleep(timeout)
+                continue
+
             if item is None:
                 break
             else:
@@ -310,7 +315,7 @@ def threaded_progressbar(q: Queue, timeout: float, total_files: Optional[int] = 
             files_pbar.update(files)
             docs_pbar.update(docs)
             tokens_pbar.update(tokens)
-            sleep(timeout)
+
 
 
 @sp.cli(ProcessTextConfig)
