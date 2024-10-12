@@ -39,5 +39,6 @@ python 2_scripts/process_s2orc.py \
   dst=s3://ai2-llm/pretraining-data/sources/s2/v3-fos-license/documents/2024-10-06/dataset=s2orc \
   parallel=128 \
   version="v3-fos-license-2024-10-06" \
-  source="pes2o/s2orc"
+  source="pes2o/s2orc" \
+  debug=True
 ```

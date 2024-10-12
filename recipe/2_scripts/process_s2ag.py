@@ -147,10 +147,6 @@ def process_single(
         tmp.flush()
         df = pd.read_parquet(tmp.name)
 
-    # for debugging purposes, only take first 1000 rows
-    if debug > 0:
-        df = df.head(debug)
-
     def get_language(text: str) -> str:
         try:
             _, _, ((_, lang, _, _), *_) = pycld2.detect(text)
@@ -256,11 +252,18 @@ def main(cfg: ProcessTextConfig):
     src_paths = [io_utils.MultiPath.parse(p) for p in io_utils.recursively_list_files(src)]
     dst_paths = [dst / (diff) if len(diff := (single_src - src)) > 0 else dst for single_src in src_paths]
 
+    fn = partial(
+        process_single,
+        debug=cfg.debug,
+        version=cfg.version,
+        source=cfg.source
+    )
+
     if cfg.debug > 0:
         src_paths = src_paths[: cfg.debug]
         with tqdm(total=len(src_paths)) as pbar:
             for single_src, single_dst in zip(src_paths, dst_paths):
-                process_single((single_src, single_dst), debug=cfg.debug)
+                fn((single_src, single_dst))
                 pbar.update(1)
 
     else:
@@ -275,17 +278,8 @@ def main(cfg: ProcessTextConfig):
             )
             pbar_thread.start()
 
-            for _ in pool.imap_unordered(
-                partial(
-                    process_single,
-                    pbar_queue=pbar_queue,
-                    debug=cfg.debug,
-                    version=cfg.version,
-                    source=cfg.source
-                ),
-                tuple(zip(src_paths, dst_paths))
-            ):
-                ...
+            for _ in pool.imap_unordered(fn, tuple(zip(src_paths, dst_paths))):
+                pass
 
             pool.close()
             pool.join()

@@ -139,7 +139,6 @@ def fix_missing_created(row: pd.Series) -> pd.Series:
 def process_single(
     io_paths: Tuple[io_utils.MultiPath, io_utils.MultiPath],
     pbar_queue: Optional[Queue] = None,
-    debug: bool = False,
     version: str = "v0",
     source: str = "s2",
 ):
@@ -153,10 +152,6 @@ def process_single(
         tmp.write(f.read())
         tmp.flush()
         df = pd.read_parquet(tmp.name)
-
-    # for debugging purposes, only take first 1000 rows
-    if debug:
-        df = df.head(100)
 
     # filter all rows that don't have a "all_paragraphs" column
     df = df[df["all_paragraphs"].notna()]
@@ -327,15 +322,17 @@ def main(cfg: ProcessTextConfig):
     src_paths = [io_utils.MultiPath.parse(p) for p in io_utils.recursively_list_files(src)]
     dst_paths = [dst / (diff) if len(diff := (single_src - src)) > 0 else dst for single_src in src_paths]
 
+    fn = partial(
+        process_single,
+        debug=cfg.debug,
+        version=cfg.version,
+        source=cfg.source
+    )
+
     if cfg.debug:
         with tqdm(total=len(src_paths)) as pbar:
             for single_src, single_dst in zip(src_paths, dst_paths):
-                process_single(
-                    (single_src, single_dst),
-                    debug=cfg.debug,
-                    version=cfg.version,
-                    source=cfg.source
-                )
+                fn((single_src, single_dst))
                 pbar.update(1)
 
     else:
@@ -350,10 +347,8 @@ def main(cfg: ProcessTextConfig):
             )
             pbar_thread.start()
 
-            for _ in pool.imap_unordered(
-                partial(process_single, pbar_queue=pbar_queue, debug=cfg.debug), tuple(zip(src_paths, dst_paths))
-            ):
-                ...
+            for _ in pool.imap_unordered(fn, tuple(zip(src_paths, dst_paths))):
+                pass
 
             pool.close()
             pool.join()
