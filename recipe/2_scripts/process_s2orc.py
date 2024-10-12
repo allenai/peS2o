@@ -6,6 +6,7 @@ Email:  luca@soldaini.net
 """
 
 import datetime
+import time
 import gzip
 import json
 import unicodedata
