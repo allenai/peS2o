@@ -9,15 +9,19 @@ UNLOAD (
             json_parse(
                 regexp_replace(
                     regexp_replace(
-                        -- remove all double quotes
-                        replace(metadata.external_ids, '"', ''),
-                        -- parse values and put them in the right structure
-                        '{\s*''source''\s*:\s*''(.*?)''\s*,\s*''id''\s*:\s*''?(.*?)''?}\s*',
-                        '{"source":"$1","id":"$2"}'
+                        regexp_replace(
+                            -- remove all double quotes
+                            replace(metadata.external_ids, '"', ''),
+                            -- parse values and put them in the right structure
+                            '{\s*''source''\s*:\s*''(.*?)''\s*,\s*''id''\s*:\s*''?(.*?)''?}\s*',
+                            '{"source":"$1","id":"$2"}'
+                        ),
+                        -- if there are multiple entries, put them in the right structure
+                        '"}(.|\s)*?{"',
+                        '"},{"'
                     ),
-                    -- if there are multiple entries, put them in the right structure
-                    '"}(.|\s)*?{"',
-                    '},{'
+                    '"}([^"]|\s)+]$',
+                    '"}]'
                 )
             ) as metadata_external_ids,
             cast(id AS INT) as corpusid,
