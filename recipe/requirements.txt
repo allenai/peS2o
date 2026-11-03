@@ -6,10 +6,10 @@ fsspec
 uniseg
 pycld3
 cached_path
-pyarrow
+pyarrow==26.0.1
 orjson
 blingfire
-pyarrow
+pyarrow==26.0.1
 tokenizers
 smart_open
 zstandard

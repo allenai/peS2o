@@ -18,7 +18,7 @@ SELECT partition_0, COUNT(*) FROM "espresso"."pq_paper" GROUP by "partition_0";
 
 ## 2. Process data
 
-First, install the dependencies:
+First, use Python 3.11 or newer and install the dependencies:
 
 ```bash
 pip install -r requirements.txt
